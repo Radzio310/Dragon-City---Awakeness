@@ -391,7 +391,7 @@ std::vector<Mission> puzzles = {
     {3, "puzzles", "Kurde, widzial ktos mlodego? O, tu jestes! Sluchaj, znowu ktos zamknal moja szafke z drugim sniadaniem... Zostawil tylko jakas karteczke z rzymskimi liczbami ale zupelnie nie rozumiem po co bo te liczby nie pasuja jako kod... Jesli dasz rade mi to otworzyc, to mysle ze bede w stanie Ci sie nalezycie odwdzieczyc. Umieram z glodu... \n\n WIADOMOSC: VIII, II, XI, IX, XVII, I, XXXV, VIII", "52336188", false, "Gasnica doswiadczonego pogromcy"},
     {4, "puzzles", "Sluchaj mlody, slyszalem, ze jestes dobry w lamiglowkach. Chlopaki nadawali Morse'em sygnal jaki sprzet im sie skonczyl ale cos pomieszalem kolejnosc liter. Wiesz moze o jaki przedmiot chodzi? \n\n WIADOMOSC : CAINGSA", "GASNICA", false, "Apteczka"},
     {5, "puzzles", "Chlopakiiiii! O, hej swiezak. Chodz, przydasz sie. Musimy szybko rozszyfrowac czego zabraklo Generalowi Leonardowi w terenie i dostarczyc mu to do Wielkiej Fojerki. Rozumiesz cos z tego? \n\n WIADOMOSC : MYOBB NODEW", "BOMBY WODNE", false, "Apteczka"},
-    {6, "puzzles", "M...m...mlody, chodz no zobacz. Zakrwawiona kartka z wiadomoscia...Bartek Chlapochlust oddal zycie zeby ja dostarczyc [SZLOCH]... Niech to nie pojdzie na marne. Musimy to odszyfrowac...cala nadzieja w Tobie, bo ja sie dzis juz nie nadaje do tego\n\n WIADOMOSC : D jpltuulj slzpl, gh nvyhpz, kayltpl MBYPH gh ztvrphpz", "7", false, "Apteczka"}
+    {6, "puzzles", "M...m...mlody, chodz no zobacz. Zakrwawiona kartka z wiadomoscia...Bartek Chlapochlust oddal zycie zeby ja dostarczyc [SZLOCH]... Niech to nie pojdzie na marne. Musimy to odszyfrowac...cala nadzieja w Tobie, bo ja sie dzis juz nie nadaje do tego\n\n WIADOMOSC : " + caesarEncrypt("W ciemnym lesie, za gorami, drzemie FURIA ze smokami", 7), "7", false, "Apteczka"}
 };
 
 // Misje ratunkowe
@@ -430,8 +430,14 @@ void Mission::execute(Player& player) {
             printLetterByLetter("Twoja odpowiedz: ");
             cin >> userAnswer;
             if (id == 6) {
-                string wiadomosc = "D jpltuulj slzpl, gh nvyhpz, kayltpl MBYPH gh ztvrphpz";
-                printBlue("Zmieniona wiadomosc: " + caesarDecrypt(wiadomosc, stoi(userAnswer)) + "\n");
+                string wiadomosc = caesarEncrypt("W ciemnym lesie, za gorami, drzemie FURIA ze smokami", stoi(answer));
+                printLetterByLetter("Zmieniona wiadomosc : ");
+                if (userAnswer == answer) {
+                    printGreen(caesarDecrypt(wiadomosc, stoi(userAnswer)) + "\n");
+                }
+                else {
+                    printBlue(caesarDecrypt(wiadomosc, stoi(userAnswer)) + "\n");
+                }
             }
             if (userAnswer == answer) {
                 if (id < 4) {
@@ -499,7 +505,7 @@ void Mission::execute(Player& player) {
         const int time_limit = 15 - 3 * id; // seconds
         const int lower_bound = 1;
         const int upper_bound = 15;
-        const double required_accuracy = 0.8;
+        const double required_accuracy = 0.74;
         int correct_answers = 0;
 
         for (int i = 0; i < total_questions; ++i) {
