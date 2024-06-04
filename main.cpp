@@ -17,7 +17,7 @@ using namespace std::chrono;
 void printLetterByLetter(const std::string& text) {
     for (char ch : text) {
         std::cout << ch << std::flush;
-        std::this_thread::sleep_for(chrono::milliseconds(20));
+        std::this_thread::sleep_for(chrono::milliseconds(10));
     }
     std::cout << std::endl;
 }
@@ -147,7 +147,7 @@ void endRescueMistakes() {
 void endDead() {
     sleep(3000);
     printRed("\n\nAAAAAACH!\n");
-    printRed("[GRAAAAU!] [RYYYYYMS!]");
+    printRed("[GRAAAAU!] [RYYYYYMS!]\n");
     sleep(2000);
     printLetterByLetter("On...mnie...pokonal... [padasz na kolana, a nastepnie jak dlugi padasz na ziemie i juz wiecej sie nie poruszasz]\n");
     sleep(1000);
@@ -343,7 +343,7 @@ public:
         mt19937 gen(rd());
         uniform_real_distribution<> heal_dis(0.5, 1);
         double healing = player.max_health * heal_dis(rd); // Przykładowa wartość leczenia
-        cout << "Uzywasz " << name << " i leczysz " << fixed << setprecision(0) << healing << " punktow zdrowia.\n";
+        cout << "Uzywasz Apteczki i leczysz " << fixed << setprecision(0) << healing << " punktow zdrowia.\n";
         if (player.health + healing < player.max_health) {
             player.health += healing;
         }
@@ -362,10 +362,25 @@ public:
         mt19937 gen(rd());
         uniform_real_distribution<> dis(0.4, 0.6);
 
-        int damage = dragon.health * dis(gen);
+        int damage = dragon.health * (dis(gen) - (dragon.id * 0.05));
         printGreen("Uzywasz bomby wodnej i zadajesz " + to_string(damage) + " obrazen smokowi!\n");
         dragon.health -= damage;
-        printBlue("Zdrowie smoka: " + to_string(dragon.health) + "\n\n");
+        if (dragon.id != 6) {
+            printBlue("Zdrowie smoka: " + to_string(dragon.health) + "\n");
+        }
+        else if (dragon.health > 0) {
+            printBlue("Zdrowie NOCNEJ FURII: ");
+            printRed("?");
+            sleep(200);
+            printRed("?");
+            sleep(200);
+            printRed("?\n");
+            sleep(200);
+        }
+        else {
+            printBlue("Zdrowie NOCNEJ FURII: ");
+            printRed(to_string(dragon.health));
+        }
     }
 };
 
@@ -465,9 +480,9 @@ void Mission::execute(Player& player) {
                     }
                     printGold("[dodano " + toUpper(reward) + " w liczbie " + to_string(ile) + " do ekwipunku]\n");
                 }
-                else if (id == 3){
+                else if (id == 3) {
                     for (auto it = player.inventory.begin(); it != player.inventory.end(); ++it) {
-                        if (*it == "Stara gasnica" || *it == "Gasnica mlodego pogromcy" || *it == "Gasnior 2000" || * it == "Gasnica doswiadczonego pogromcy") {
+                        if (*it == "Stara gasnica" || *it == "Gasnica mlodego pogromcy" || *it == "Gasnior 2000" || *it == "Gasnica doswiadczonego pogromcy") {
                             player.inventory.erase(it); // Usuń stara gasnice z ekwipunku
                             break; // Zatrzymaj pętlę po usunieciu przedmiotu
                         }
@@ -478,7 +493,7 @@ void Mission::execute(Player& player) {
                     printGold("[dodano GASNICE DOSWIADCZONEGO POGROMCY do ekwipunku]\n");
                     player.actual_weapon_damage = 50;
                 }
-                
+
                 player.completed_missions += 1;
                 player.levelUp();
                 completed = true;
@@ -570,15 +585,28 @@ void Mission::execute(Player& player) {
             printLightBlue("General Leonard: ");
             printLetterByLetter("Ekstra mlody! Udalo Ci sie uratowac " + to_string(accuracy * 100) + "% cywili! Swietny wynik! Zasluzyles na nagrode!\n");
             if (id == 3) {
-                for (auto it = player.inventory.begin(); it != player.inventory.end(); ++it) {
-                    if (*it == "Stara gasnica" || *it == "Gasnica mlodego pogromcy" || *it == "Gasnior 2000") {
-                        player.inventory.erase(it); // Usuń stara gasnice z ekwipunku
-                        break; // Zatrzymaj pętlę po usunieciu przedmiotu
+                if (player.actual_weapon_damage < 40) {
+                    for (auto it = player.inventory.begin(); it != player.inventory.end(); ++it) {
+                        if (*it == "Stara gasnica" || *it == "Gasnica mlodego pogromcy" || *it == "Gasnior 2000") {
+                            player.inventory.erase(it); // Usuń stara gasnice z ekwipunku
+                            break; // Zatrzymaj pętlę po usunieciu przedmiotu
+                        }
                     }
+                    player.inventory.push_back(reward); // Dodaj nagrodę do ekwipunku gracza
+                    printGold("[dodano GASNIORA 2000 do ekwipunku]\n");
+                    player.actual_weapon_damage = 40;
                 }
-                player.inventory.push_back(reward); // Dodaj nagrodę do ekwipunku gracza
-                printGold("[dodano GASNIORA 2000 do ekwipunku]\n");
-                player.actual_weapon_damage = 40;
+                else {
+                    printLightBlue("General Leonard: ");
+                    printLetterByLetter("Och...chcialem Ci dac Gasniora 2000, ale widze, ze masz juz calkiem niezla bron...zatem wez chociaz to. W dowod naszego uznania!\n");
+                    printGold("[dodano Order Plomyka do ekwipunku]\n");
+                    printGold("[dodano Apteczke do ekwipunku]\n");
+                    player.inventory.push_back("Order Plomyka");
+                    player.inventory.push_back("Apteczka");
+                    player.completed_missions++;
+                    printGold("[przyzano podwojne doswiadczenie za ukonczenie misji]\n");
+                    player.levelUp();
+                }
             }
             else {
                 int ile = generateRandomInt(1, 3);
@@ -599,7 +627,7 @@ void Mission::execute(Player& player) {
                 endRescueMistakes();
             }
         }
-        
+
     }
 }
 
@@ -609,9 +637,47 @@ void battle(Player& player, Dragon& dragon) {
     uniform_real_distribution<> dis(0.7, 1.3);
     uniform_real_distribution<> crit_dis(0, 1);
 
+    if (dragon.id == 6) {
+        printRed("[bum]\n");
+        sleep(1000);
+        printRed("[buM]\n");
+        sleep(1000);
+        printRed("[bUM]\n");
+        sleep(1000);
+        printRed("[BUM]\n");
+        sleep(2000);
+        printRed("\n[GRAAAAAAAAU!]\n\n");
+        printLightBlue("MIESZKANCY PYROKLAS: ");
+        printLetterByLetter("RATUJ SIE KTO MOZE!! To SZCZERBATEK! AAAAAAAAAAA!\n\n");
+        sleep(1000);
+        printLightBlue("NOCNA FURIA: ");
+        printLetterByLetter("KTO SMIAL WYBIJAC MOICH BRACI I ZAKLOCAC ODWIECZNY SPOKOJ KROLA SMOKOW!?\n");
+        printLightBlue(player.name + ": ");
+        sleep(2000);
+        printLetterByLetter("To koniec twojego terroru! Dzis poloze temu kres i ocale PYROKLAS!\n");
+        printLightBlue("Jozio - chlopiec z przedmiescia: ");
+        printLetterByLetter("[cicho] Mamo, kto to w ogole jest?\n");
+        printLightBlue("Mama - zazenowana brakiem taktu syna: ");
+        printLetterByLetter("No i brawo Jozio...spartoliles epike pojedynku...\n");
+        printLightBlue("NOCNA FURIA: ");
+        printLetterByLetter("CISZA! CZAS POZREC MLODEGO BOHATERA!!!\n\n");
+        sleep(1000);
+    }
+
     printLetterByLetter("========================== WALKA ==========================");
     printUpperCasePurple("[ " + dragon.name + " ]");
-    printBlue("Zdrowie smoka: " + to_string(dragon.health) + "\n");
+    if (dragon.id != 6) {
+        printBlue("Zdrowie smoka: " + to_string(dragon.health) + "\n");
+    }
+    else {
+        printBlue("Zdrowie NOCNEJ FURII: ");
+        printRed("?");
+        sleep(200);
+        printRed("?");
+        sleep(200);
+        printRed("?\n");
+        sleep(200);
+    }
     printLightBlue("\nTwoje zdrowie: " + to_string(player.health) + "\n\n");
     sleep(1500);
 
@@ -640,7 +706,22 @@ void battle(Player& player, Dragon& dragon) {
 
             printGreen("Atakujesz smoka i zadajesz " + to_string(damage) + " obrazen!\n");
             dragon.health -= damage;
-            printBlue("Zdrowie smoka: " + to_string(dragon.health) + "\n\n");
+            if (dragon.id != 6) {
+                printBlue("Zdrowie smoka: " + to_string(dragon.health) + "\n");
+            }
+            else if (dragon.health > 0) {
+                printBlue("Zdrowie NOCNEJ FURII: ");
+                printRed("?");
+                sleep(200);
+                printRed("?");
+                sleep(200);
+                printRed("?\n");
+                sleep(200);
+            }
+            else {
+                printBlue("Zdrowie NOCNEJ FURII: ");
+                printRed(to_string(dragon.health));
+            }
         }
         else if (action == "2") {
             // bomby wodne
@@ -685,7 +766,7 @@ void battle(Player& player, Dragon& dragon) {
                     cout << "Brak apteczek w ekwipunku.\n";
                     zly_ruch = true;
                 }
-            } 
+            }
             else {
                 printLetterByLetter("Masz pelne zdrowie :) Nie ma sensu marnowac apteczek\n");
                 zly_ruch = true;
@@ -713,120 +794,128 @@ void battle(Player& player, Dragon& dragon) {
         endDead();
     }
     else if (dragon.health <= 0) {
+        printGold("======================== ZWYCIESTWO =======================\n\n");
         sleep(1000);
         for (auto& mission : huntMissions) {
             if (!mission.completed && mission.reward != "") {
                 int ile = 1;
                 switch (dragon.id) {
-                    case 1: {
-                        printLightBlue("Marian - przypadkowy przechodzien: ");
-                        printLetterByLetter("Wow...to bylo cos niesamowitego! Widze w tobie wielki potencjal! Moj dziadek kiedys tez byl pogromca smokow...mi sie to juz i tak nie przyda...");
-                        printLetterByLetter("Wez, moze Tobie pomoze! Powodzenia " + player.name + "!\n");
-                        if (player.actual_weapon_damage < 35) {
-                            printGold("[dodano GASNICE MLODEGO POGROMCY do ekwipunku]\n");
-                            player.actual_weapon_damage = 35;
-                            for (auto it = player.inventory.begin(); it != player.inventory.end(); ++it) {
-                                if (*it == "Stara gasnica") {
-                                    player.inventory.erase(it); // Usuń stara gasnice z ekwipunku
-                                    break; // Zatrzymaj pętlę po użyciu apteczki
-                                }
-                            }
-                        }
-                        else {
-                            printLightBlue(player.name + ": ");
-                            printLetterByLetter("Dziekuje bardzo, mam juz swoja ulubiona gasnice, ale bardzo doceniam ten hojny dar. Moze ktos potrzebuje jej bardziej niz ja ;)");
-                            printLightBlue("Marian - przypadkowy przechodzien: ");
-                            printLetterByLetter("Och...okej! Powodzenia " + player.name + "!\n");
-                        }
-
-                        player.completed_missions += 1;
-                        player.levelUp();
-                        sleep(2000);
-
-                        break;
-                    }
-                    case 2: {
-                        ile = generateRandomInt(1, 3);
-                        printLightBlue("Bozena - stara aptekara: ");
-                        printLetterByLetter("Podejdz no tu chlopcze! ");
-                        sleep(1000);
-                        printLetterByLetter("No, no, calkiem niezle machasz ta gasnica. Ale to nie wszystko. Czasem warto wiedziec kiedy sie wycofac i wyleczyc rany. Szczegolnie skoro przed Toba spotkanie ze Szczerbatkiem...\n");
-                        printLightBlue(player.name + ": ");
-                        printLetterByLetter("Zaraz, zaraz, z kim?\n");
-                        printLightBlue("Bozena - stara aptekara: ");
-                        printLetterByLetter("Wez, to Ci pomoze! Powodzenia " + player.name + "!\n");
-                        printLetterByLetter("[Bozena znika nagle w klebach dymu, a Ty pograzasz sie we snie i budzisz nastepnego ranka w swoim domu]\n\n");
-                        printGold("[dodano APTECZKE w liczbie " + to_string(ile) + " do ekwipunku]\n");
-
-                        player.completed_missions += 1;
-                        player.levelUp();
-                        sleep(2000);
-                        break;
-                    }
-                    case 3: {
-                        ile = generateRandomInt(1, 2);
-                        printLightBlue("Michas - maly alchemik: ");
-                        printLetterByLetter("Hehehehehe, KABOOOOM! To bylo dobre! Niezla walka, przyznaje, ale zabraklo jej tego...wybuchowego finalu...moge Ci w tym pomoc ;)");
-                        printLightBlue(player.name + ": ");
-                        printLetterByLetter("Wybuchowego efektu?\n");
-                        printLetterByLetter("Nie dopytuj tylko bierz! Aaaaa, zapomnialbym! Nie uzywaj tego w domu huehuehuehueheuhue... Powodzenia " + player.name + "!\n");
-                        printGold("[dodano BOMBE WODNA w liczbie " + to_string(ile) + " do ekwipunku]\n");
-
-                        player.completed_missions += 1;
-                        player.levelUp();
-                        sleep(2000);
-                        break;
-                    }
-                    case 4: {
-                        ile = generateRandomInt(2, 4);
-                        printLightBlue("Bogdan - strazak zza lasu: ");
-                        printLetterByLetter("Hej! Mlody! Calkiem niezle Ci poszlo, przyznaje! Ja tez cos niecos potrafie, ale musze przyznac, ze Tobie mialbym ciezko dorownac. Moze Tobie pierwszemu uda sie odnalezc legowisko Szczerbatka...\n");
-                        printLightBlue(player.name + ": ");
-                        printLetterByLetter("Kim do cholery jest ten Szczerbatek?!?\n");
-                        printLightBlue("Bogdan - strazak zza lasu: ");
-                        printLetterByLetter("To Ty nie wiesz? Toz to sam krol smokow! Jedyna NOCNA FURIA jaka przyzyla WIELKI POMOR sprzed 200 lat. Wybijaj dalej jego rodzenstwo, a jestem pewny, ze niedlugo naprzykrzysz mu sie wystarczajaco by go spotkac...obys przezyl by o tym opowiadac. No nic, wez to, moze Ci pomoze! Powodzenia " + player.name + "!\n");
-                        printGold("[dodano BOMBE WODNA w liczbie " + to_string(ile) + " do ekwipunku]\n");
-
-                        player.completed_missions += 1;
-                        player.levelUp();
-                        sleep(2000);
-                        break;
-                    }
-                    case 5: {
-                        printLightBlue("Klaudia - niespotykana pieknosc: ");
-                        printLetterByLetter("Jeju...to bylo niesamowite...ale to ciagle za malo zebys sobie poradzil ze Szczerbatkiem. Nie moge patrzec jak idziesz na smierc, nie wiedzac co Cie czeka. Musisz isc?");
-                        printLightBlue(player.name + ": ");
-                        printLetterByLetter("Wiesz, ze tak...\n");
-                        printLightBlue("Klaudia - niespotykana pieknosc: ");
-                        printLetterByLetter("Wez przynajmniej to... Moze przedluzy Twoje zycie o pare chwil... [SZLOCH] Powodzenia " + player.name + "!\n");
-                        printGold("[dodano SPRYSKIWACZ 3000 do ekwipunku]\n");
+                case 1: {
+                    mission.reward = "Gasnica mlodego pogromcy";
+                    printLightBlue("Marian - przypadkowy przechodzien: ");
+                    printLetterByLetter("Wow...to bylo cos niesamowitego! Widze w tobie wielki potencjal! Moj dziadek kiedys tez byl pogromca smokow...mi sie to juz i tak nie przyda...");
+                    printLetterByLetter("Wez, moze Tobie pomoze! Powodzenia " + player.name + "!\n");
+                    if (player.actual_weapon_damage < 35) {
+                        printGold("[dodano GASNICE MLODEGO POGROMCY do ekwipunku]\n");
+                        player.actual_weapon_damage = 35;
                         for (auto it = player.inventory.begin(); it != player.inventory.end(); ++it) {
-                            if (*it == "Gasnica mlodego pogromcy" || *it == "Gasnior 2000" || * it == "Gasnica doswiadczonego pogromcy" || *it == "Spryskiwacz 3000") {
+                            if (*it == "Stara gasnica") {
                                 player.inventory.erase(it); // Usuń stara gasnice z ekwipunku
                                 break; // Zatrzymaj pętlę po użyciu apteczki
                             }
                         }
-                        player.actual_weapon_damage = 70;
+                    }
+                    else {
+                        printLightBlue(player.name + ": ");
+                        printLetterByLetter("Dziekuje bardzo, mam juz swoja ulubiona gasnice, ale bardzo doceniam ten hojny dar. Moze ktos potrzebuje jej bardziej niz ja ;)");
+                        printLightBlue("Marian - przypadkowy przechodzien: ");
+                        printLetterByLetter("Och...okej! Powodzenia " + player.name + "!\n");
+                    }
 
-                        player.completed_missions += 1;
-                        player.levelUp();
-                        sleep(2000);
-                        break;
+                    player.completed_missions += 1;
+                    player.levelUp();
+                    sleep(2000);
+
+                    break;
+                }
+                case 2: {
+                    mission.reward = "Apteczka";
+                    ile = generateRandomInt(1, 3);
+                    printLightBlue("Bozena - stara aptekara: ");
+                    printLetterByLetter("Podejdz no tu chlopcze! ");
+                    sleep(1000);
+                    printLetterByLetter("No, no, calkiem niezle machasz ta gasnica. Ale to nie wszystko. Czasem warto wiedziec kiedy sie wycofac i wyleczyc rany. Szczegolnie skoro przed Toba spotkanie ze Szczerbatkiem...\n");
+                    printLightBlue(player.name + ": ");
+                    printLetterByLetter("Zaraz, zaraz, z kim?\n");
+                    printLightBlue("Bozena - stara aptekara: ");
+                    printLetterByLetter("Wez, to Ci pomoze! Powodzenia " + player.name + "!\n");
+                    printLetterByLetter("[Bozena znika nagle w klebach dymu, a Ty pograzasz sie we snie i budzisz nastepnego ranka w swoim domu]\n\n");
+                    printGold("[dodano APTECZKE w liczbie " + to_string(ile) + " do ekwipunku]\n");
+
+                    player.completed_missions += 1;
+                    player.levelUp();
+                    sleep(2000);
+                    break;
+                }
+                case 3: {
+                    mission.reward = "Bomba wodna";
+                    ile = generateRandomInt(1, 2);
+                    printLightBlue("Michas - maly alchemik: ");
+                    printLetterByLetter("Hehehehehe, KABOOOOM! To bylo dobre! Niezla walka, przyznaje, ale zabraklo jej tego...wybuchowego finalu...moge Ci w tym pomoc ;)");
+                    printLightBlue(player.name + ": ");
+                    printLetterByLetter("Wybuchowego efektu?\n");
+                    printLightBlue("Michas - maly alchemik: ");
+                    printLetterByLetter("Nie dopytuj tylko bierz! Aaaaa, zapomnialbym! Nie uzywaj tego w domu huehuehuehueheuhue... Powodzenia " + player.name + "!\n");
+                    printGold("[dodano BOMBE WODNA w liczbie " + to_string(ile) + " do ekwipunku]\n");
+
+                    player.completed_missions += 1;
+                    player.levelUp();
+                    sleep(2000);
+                    break;
+                }
+                case 4: {
+                    mission.reward = "Bomba wodna";
+                    ile = generateRandomInt(2, 4);
+                    printLightBlue("Bogdan - strazak zza lasu: ");
+                    printLetterByLetter("Hej! Mlody! Calkiem niezle Ci poszlo, przyznaje! Ja tez cos niecos potrafie, ale musze przyznac, ze Tobie mialbym ciezko dorownac. Moze Tobie pierwszemu uda sie odnalezc legowisko Szczerbatka...\n");
+                    printLightBlue(player.name + ": ");
+                    printLetterByLetter("Kim do cholery jest ten Szczerbatek?!?\n");
+                    printLightBlue("Bogdan - strazak zza lasu: ");
+                    printLetterByLetter("To Ty nie wiesz? Toz to sam krol smokow! Jedyna NOCNA FURIA jaka przyzyla WIELKI POMOR sprzed 200 lat. Wybijaj dalej jego rodzenstwo, a jestem pewny, ze niedlugo naprzykrzysz mu sie wystarczajaco by go spotkac...obys przezyl by o tym opowiadac. No nic, wez to, moze Ci pomoze! Powodzenia " + player.name + "!\n");
+                    printGold("[dodano BOMBE WODNA w liczbie " + to_string(ile) + " do ekwipunku]\n");
+
+                    player.completed_missions += 1;
+                    player.levelUp();
+                    sleep(2000);
+                    break;
+                }
+                case 5: {
+                    mission.reward = "Spryskiwacz 3000";
+                    printLightBlue("Klaudia - niespotykana pieknosc: ");
+                    printLetterByLetter("Jeju...to bylo niesamowite...ale to ciagle za malo zebys sobie poradzil ze Szczerbatkiem. Nie moge patrzec jak idziesz na smierc, nie wiedzac co Cie czeka. Musisz isc?");
+                    printLightBlue(player.name + ": ");
+                    printLetterByLetter("Wiesz, ze tak...\n");
+                    printLightBlue("Klaudia - niespotykana pieknosc: ");
+                    printLetterByLetter("Wez przynajmniej to... Moze przedluzy Twoje zycie o pare chwil... [SZLOCH] Powodzenia " + player.name + "!\n");
+                    printGold("[dodano SPRYSKIWACZ 3000 do ekwipunku]\n");
+                    for (auto it = player.inventory.begin(); it != player.inventory.end(); ++it) {
+                        if (*it == "Gasnica mlodego pogromcy" || *it == "Gasnior 2000" || *it == "Gasnica doswiadczonego pogromcy" || *it == "Spryskiwacz 3000") {
+                            player.inventory.erase(it); // Usuń stara gasnice z ekwipunku
+                            break; // Zatrzymaj pętlę po użyciu apteczki
+                        }
                     }
-                    case 6: {
-                        printLetterByLetter("[BRZDĘK, BRZdęk, brzdęk, brzd...]\n");
-                        sleep(1000);
-                        printGold("[dodano KORONE SMOKOW do ekwipunku]\n");
-                        player.completed_missions += 1;
-                        player.levelUp();
-                        sleep(2000);
-                        //saveGame();
-                        endWin();
-                        break;
-                    }
-                    default: {
-                        break;
-                    }
+                    player.actual_weapon_damage = 70;
+
+                    player.completed_missions += 1;
+                    player.levelUp();
+                    sleep(2000);
+                    break;
+                }
+                case 6: {
+                    mission.reward = "KORONA SMOKOW";
+                    printLetterByLetter("[BRZDEK, BRZdek, brzdek, brzd...]\n");
+                    sleep(1000);
+                    printGold("[dodano KORONE SMOKOW do ekwipunku]\n");
+                    player.completed_missions += 1;
+                    player.levelUp();
+                    sleep(2000);
+                    //saveGame();
+                    endWin();
+                    break;
+                }
+                default: {
+                    break;
+                }
                 }
                 for (int i = 1; i <= ile; i++) {
                     player.inventory.push_back(mission.reward); // Dodaj nagrodę do ekwipunku gracza
@@ -915,9 +1004,9 @@ void Game::initializeGame() {
     dragons.push_back(zimnolub);
     Dragon gromotrach = { 4, "Gromotrach", "Electric Dragon", 500, 40, 0.15 };
     dragons.push_back(gromotrach);
-    Dragon buldozeran = { 5, "Buldozeran", "Ground Dragon", 650, 75, 0.1 };
+    Dragon buldozeran = { 5, "Buldozeran", "Ground Dragon", 850, 75, 0.2 };
     dragons.push_back(buldozeran);
-    Dragon szczerbatek = { 6, "Szczerbatek", "Plazma Dragon", 1000, 100, 0.5 }; // zamiast Władcy Żaru
+    Dragon szczerbatek = { 6, "Szczerbatek", "Plazma Dragon", 1500, 150, 0.5 }; // zamiast Władcy Żaru
     dragons.push_back(szczerbatek);
 }
 
@@ -1031,54 +1120,54 @@ void Game::handleGameMenuInput(const std::string& input) {
             if (dragons[i].health > 0) {
                 int czy_na_pewno = 1;
                 switch (i) {
-                    case 0: {
-                        if (player.health < 100) {
-                            printLightBlue("Maro, Twoj buddy: ");
-                            printLetterByLetter("Nie wydaje mi sie, zeby to byl najlepszy pomysl...lepiej jeszcze sie podszkolic i poszukac ekwipunku. Jesli jestes pewny, to Cie nie zatrzymuje, ale pamietaj ze ostrzegalem. \nAby wyruszyc mimo wszystko wcisnij (1)\n");
-                            cin >> czy_na_pewno;
-                        }
-                        break;
+                case 0: {
+                    if (player.health < 100) {
+                        printLightBlue("Maro, Twoj buddy: ");
+                        printLetterByLetter("Nie wydaje mi sie, zeby to byl najlepszy pomysl...lepiej jeszcze sie podszkolic i poszukac ekwipunku. Jesli jestes pewny, to Cie nie zatrzymuje, ale pamietaj ze ostrzegalem. \nAby wyruszyc mimo wszystko wcisnij (1)\n");
+                        cin >> czy_na_pewno;
                     }
-                    case 1: {
-                        if (player.health < 175) {
-                            printLightBlue("Maro, Twoj buddy: ");
-                            printLetterByLetter("Nie wydaje mi sie, zeby to byl najlepszy pomysl...lepiej jeszcze sie podszkolic i poszukac ekwipunku. Jesli jestes pewny, to Cie nie zatrzymuje, ale pamietaj ze ostrzegalem. \nAby wyruszyc mimo wszystko wcisnij (1)\n");
-                            cin >> czy_na_pewno;
-                        }
-                        break;
+                    break;
+                }
+                case 1: {
+                    if (player.health < 175) {
+                        printLightBlue("Maro, Twoj buddy: ");
+                        printLetterByLetter("Nie wydaje mi sie, zeby to byl najlepszy pomysl...lepiej jeszcze sie podszkolic i poszukac ekwipunku. Jesli jestes pewny, to Cie nie zatrzymuje, ale pamietaj ze ostrzegalem. \nAby wyruszyc mimo wszystko wcisnij (1)\n");
+                        cin >> czy_na_pewno;
                     }
-                    case 2: {
-                        if (player.health < 200) {
-                            printLightBlue("Maro, Twoj buddy: ");
-                            printLetterByLetter("Nie wydaje mi sie, zeby to byl najlepszy pomysl...lepiej jeszcze sie podszkolic i poszukac ekwipunku. Jesli jestes pewny, to Cie nie zatrzymuje, ale pamietaj ze ostrzegalem. \nAby wyruszyc mimo wszystko wcisnij (1)\n");
-                            cin >> czy_na_pewno;
-                        }
-                        break;
+                    break;
+                }
+                case 2: {
+                    if (player.health < 200) {
+                        printLightBlue("Maro, Twoj buddy: ");
+                        printLetterByLetter("Nie wydaje mi sie, zeby to byl najlepszy pomysl...lepiej jeszcze sie podszkolic i poszukac ekwipunku. Jesli jestes pewny, to Cie nie zatrzymuje, ale pamietaj ze ostrzegalem. \nAby wyruszyc mimo wszystko wcisnij (1)\n");
+                        cin >> czy_na_pewno;
                     }
-                    case 3: {
-                        if (player.health < 250 || player.actual_weapon_damage < 50) {
-                            printLightBlue("Maro, Twoj buddy: ");
-                            printLetterByLetter("Nie wydaje mi sie, zeby to byl najlepszy pomysl...lepiej jeszcze sie podszkolic i poszukac ekwipunku. Jesli jestes pewny, to Cie nie zatrzymuje, ale pamietaj ze ostrzegalem. \nAby wyruszyc mimo wszystko wcisnij (1)\n");
-                            cin >> czy_na_pewno;
-                        }
-                        break;
+                    break;
+                }
+                case 3: {
+                    if (player.health < 250 || player.actual_weapon_damage < 50) {
+                        printLightBlue("Maro, Twoj buddy: ");
+                        printLetterByLetter("Nie wydaje mi sie, zeby to byl najlepszy pomysl...lepiej jeszcze sie podszkolic i poszukac ekwipunku. Jesli jestes pewny, to Cie nie zatrzymuje, ale pamietaj ze ostrzegalem. \nAby wyruszyc mimo wszystko wcisnij (1)\n");
+                        cin >> czy_na_pewno;
                     }
-                    case 4: {
-                        if (player.health < 325) {
-                            printLightBlue("Maro, Twoj buddy: ");
-                            printLetterByLetter("Nie wydaje mi sie, zeby to byl najlepszy pomysl...lepiej jeszcze sie podszkolic i poszukac ekwipunku. Jesli jestes pewny, to Cie nie zatrzymuje, ale pamietaj ze ostrzegalem. \nAby wyruszyc mimo wszystko wcisnij (1)\n");
-                            cin >> czy_na_pewno;
-                        }
-                        break;
+                    break;
+                }
+                case 4: {
+                    if (player.health < 325) {
+                        printLightBlue("Maro, Twoj buddy: ");
+                        printLetterByLetter("Nie wydaje mi sie, zeby to byl najlepszy pomysl...lepiej jeszcze sie podszkolic i poszukac ekwipunku. Jesli jestes pewny, to Cie nie zatrzymuje, ale pamietaj ze ostrzegalem. \nAby wyruszyc mimo wszystko wcisnij (1)\n");
+                        cin >> czy_na_pewno;
                     }
-                    case 5: {
-                        if (player.health < 400 || player.actual_weapon_damage < 70) {
-                            printLightBlue("Maro, Twoj buddy: ");
-                            printLetterByLetter("Nie wydaje mi sie, zeby to byl najlepszy pomysl...lepiej jeszcze sie podszkolic i poszukac ekwipunku. Jesli jestes pewny, to Cie nie zatrzymuje, ale pamietaj ze ostrzegalem. \nAby wyruszyc mimo wszystko wcisnij (1)\n");
-                            cin >> czy_na_pewno;
-                        }
-                        break;
+                    break;
+                }
+                case 5: {
+                    if (player.health < 400 || player.actual_weapon_damage < 70) {
+                        printLightBlue("Maro, Twoj buddy: ");
+                        printLetterByLetter("Nie wydaje mi sie, zeby to byl najlepszy pomysl...lepiej jeszcze sie podszkolic i poszukac ekwipunku. Jesli jestes pewny, to Cie nie zatrzymuje, ale pamietaj ze ostrzegalem. \nAby wyruszyc mimo wszystko wcisnij (1)\n");
+                        cin >> czy_na_pewno;
                     }
+                    break;
+                }
                 }
                 if (czy_na_pewno == 1) {
                     printPurple(".\n");
@@ -1177,9 +1266,9 @@ void Game::loadGame() {
         }
         std::string item;
         player.inventory.clear();
-            //pusta linijka
-            string temp;
-            std::getline(loadFile, temp);
+        //pusta linijka
+        string temp;
+        std::getline(loadFile, temp);
         while (std::getline(loadFile, item)) {
             player.inventory.push_back(item);
         }
